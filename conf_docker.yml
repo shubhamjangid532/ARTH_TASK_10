@@ -1,0 +1,68 @@
+- hosts: docker
+  tasks:
+    - name: "Configure dnf for docker"
+      yum_repository:
+           name: docker
+           baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+           description: my docker repository
+           enabled: true
+           gpgcheck: no
+
+
+    - name: "installing docker software"
+      command: "dnf install docker-ce -y --nobest"
+
+
+    - name: "Start and Enabled the services of Docker"
+      service:
+          name: docker
+          state: started
+          enabled: yes
+
+    - name: "Install python36"
+      package:
+          name: python36
+          state: present
+
+    - name: "install python library"
+      pip:
+          name: docker-py
+
+
+    - name: "pull docker image (httpd)"
+      docker_image:
+          name: httpd
+          source: pull
+    - name: "install Apache Webserver"
+      package:
+          name: "httpd"
+          state: present
+
+    - name: "Start Services of httpd"
+      service:
+          name: "httpd"
+          state: started
+          enabled: yes
+
+    - name: "copying webpage"
+      copy:
+          dest: "/var/www/html/index.html"
+          content: "<h3> This is For the testing </h3> <br> <br> <h2> Thank You </h2>"
+
+
+    - name: "launch container"
+      docker_container:
+          name: webserver
+          image: httpd
+          state: started
+          published_ports:
+          - "8484:80"
+          volumes:
+          - "/var/www/html/:/usr/local/apache2/htdocs/"
+
+    - name: "Open Port 8484"
+      firewalld:
+              port: 8484/tcp
+              state: enabled
+              permanent: yes
+              immediate: yes
